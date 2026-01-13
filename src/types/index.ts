@@ -1,6 +1,5 @@
 export type RootStackParamList = {
   MainTabs: undefined;
-  PlantScan: undefined;
   Results: {
     disease: string;
     severity: string;
@@ -15,7 +14,6 @@ export type RootStackParamList = {
 export type MainTabParamList = {
   Home: undefined;
   Library: undefined;
-  Scan: undefined;
   Profile: undefined;
 };
 

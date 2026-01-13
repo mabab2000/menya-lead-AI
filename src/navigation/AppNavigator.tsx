@@ -7,7 +7,6 @@ import { RootStackParamList, MainTabParamList } from '../types';
 
 // Screens
 import HomeScreen from '../screens/HomeScreen';
-import PlantScanScreen from '../screens/PlantScanScreen';
 import ResultsScreen from '../screens/ResultsScreen';
 import PlantLibraryScreen from '../screens/PlantLibraryScreen';
 import ProfileScreen from '../screens/ProfileScreen';
@@ -26,8 +25,6 @@ function MainTabs() {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'Library') {
             iconName = focused ? 'library' : 'library-outline';
-          } else if (route.name === 'Scan') {
-            iconName = focused ? 'scan' : 'scan-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
           }
@@ -41,7 +38,6 @@ function MainTabs() {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Library" component={PlantLibraryScreen} />
-      <Tab.Screen name="Scan" component={PlantScanScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
@@ -52,7 +48,6 @@ export default function AppNavigator() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="MainTabs" component={MainTabs} />
-        <Stack.Screen name="PlantScan" component={PlantScanScreen} />
         <Stack.Screen name="Results" component={ResultsScreen} />
       </Stack.Navigator>
     </NavigationContainer>

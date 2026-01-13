@@ -82,6 +82,7 @@ export default function PlantLibraryScreen() {
   };
 
   const getSeverityColor = (severity: string) => {
+    if (!severity) return '#999';
     switch (severity.toLowerCase()) {
       case 'high':
       case 'severe':
@@ -109,7 +110,7 @@ export default function PlantLibraryScreen() {
   };
 
   const filteredScans = scans.filter((scan) =>
-    scan.disease.toLowerCase().includes(searchQuery.toLowerCase())
+    scan.disease?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -117,12 +118,9 @@ export default function PlantLibraryScreen() {
       {/* Header */}
       <LinearGradient colors={['#4CAF50', '#45a049']} style={styles.header}>
         <Text style={styles.headerTitle}>Scan History</Text>
-        <TouchableOpacity 
-          style={styles.menuButton}
-          onPress={() => navigation.navigate('PlantScan')}
-        >
-          <Ionicons name="add" size={24} color="#fff" />
-        </TouchableOpacity>
+        <View style={styles.menuButton}>
+          <Ionicons name="time" size={24} color="#fff" />
+        </View>
       </LinearGradient>
 
       {/* Search Bar */}
@@ -150,15 +148,8 @@ export default function PlantLibraryScreen() {
             <Ionicons name="leaf-outline" size={64} color="#ccc" />
             <Text style={styles.emptyText}>No scans yet</Text>
             <Text style={styles.emptySubtext}>
-              Start scanning plants to build your library
+              Your scan history will appear here
             </Text>
-            <TouchableOpacity
-              style={styles.scanButton}
-              onPress={() => navigation.navigate('PlantScan')}
-            >
-              <Ionicons name="scan" size={20} color="#fff" />
-              <Text style={styles.scanButtonText}>Scan a Plant</Text>
-            </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.grid}>

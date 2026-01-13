@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,25 +7,141 @@ import {
   TouchableOpacity,
   Image,
   StatusBar,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
+import { Camera } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
+import { ApiService } from '../services/api';
+import { StorageService, AnalysisResult } from '../services/storage';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
   const [userName] = useState('John');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [lastScan, setLastScan] = useState<AnalysisResult | null>(null);
 
-  
+  const loadLastScan = async () => {
+    try {
+      const scans = await StorageService.getAllScans();
+      if (scans.length > 0) {
+        setLastScan(scans[0]);
+      }
+    } catch (error) {
+      console.error('Error loading last scan:', error);
+    }
+  };
 
-  const favorites = [
-    { id: 1, name: 'Tomato', image: require('../../assets/plants/tomato.jpg') },
-    { id: 2, name: 'Maize', image: require('../../assets/plants/maize.jpg') },
-  ];
+  useFocusEffect(
+    useCallback(() => {
+      loadLastScan();
+    }, [])
+  );
+
+  const takePicture = async () => {
+    const { status } = await Camera.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Camera permission is needed to take pictures');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      analyzePlant(result.assets[0].uri);
+    }
+  };
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images' as any,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      analyzePlant(result.assets[0].uri);
+    }
+  };
+
+  const analyzePlant = async (imageUri: string) => {
+    setIsProcessing(true);
+    
+    try {
+      const apiResponse = await ApiService.analyzeImage(imageUri);
+      
+      const scanResult: AnalysisResult = {
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        imageUri,
+        isPlant: apiResponse.is_plant,
+        message: apiResponse.message,
+        disease: apiResponse.disease,
+        severity: apiResponse.severity,
+        recommendations: apiResponse.recommendations,
+        affectedParts: apiResponse.affected_parts,
+      };
+      
+      await StorageService.saveScan(scanResult);
+      setLastScan(scanResult);
+      setIsProcessing(false);
+      
+      navigation.navigate('Results', {
+        disease: apiResponse.disease,
+        severity: apiResponse.severity,
+        imageUri,
+        recommendations: apiResponse.recommendations,
+        affectedParts: apiResponse.affected_parts,
+        isPlant: apiResponse.is_plant,
+        message: apiResponse.message,
+      });
+    } catch (error) {
+      setIsProcessing(false);
+      Alert.alert(
+        'Analysis Failed',
+        'Failed to analyze the image. Please check your internet connection and try again.'
+      );
+    }
+  };
+
+  const getSeverityColor = (severity: string) => {
+    if (!severity) return '#999';
+    switch (severity.toLowerCase()) {
+      case 'high':
+      case 'severe':
+        return '#F44336';
+      case 'medium':
+      case 'moderate':
+        return '#FF9800';
+      case 'low':
+      case 'mild':
+        return '#4CAF50';
+      default:
+        return '#999';
+    }
+  };
+
+  const formatDate = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
 
   return (
     <View style={styles.container}>
@@ -45,36 +161,88 @@ export default function HomeScreen() {
       </LinearGradient>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Scan Options */}
+        {/* Upload/Take Picture Options */}
         <View style={styles.section}>
-          <TouchableOpacity
-            style={styles.scanCard}
-            onPress={() => navigation.navigate('PlantScan')}
-          >
-            <LinearGradient
-              colors={['#4CAF50', '#45a049']}
-              style={styles.scanGradient}
+          <Text style={styles.sectionTitle}>Analyze a Plant</Text>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={styles.actionCard}
+              onPress={takePicture}
+              disabled={isProcessing}
             >
-              <Ionicons name="scan" size={40} color="#fff" />
-              <Text style={styles.scanCardTitle}>Scan Plant</Text>
-              <Text style={styles.scanCardSubtitle}>Detect diseases instantly</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+              <LinearGradient
+                colors={['#4CAF50', '#45a049']}
+                style={styles.actionGradient}
+              >
+                <Ionicons name="camera" size={40} color="#fff" />
+                <Text style={styles.actionCardTitle}>Take Picture</Text>
+              </LinearGradient>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.uploadCard}
-            onPress={() => navigation.navigate('PlantScan')}
-          >
-            <LinearGradient
-              colors={['#4CAF50', '#45a049']}
-              style={styles.scanGradient}
+            <TouchableOpacity
+              style={styles.actionCard}
+              onPress={pickImage}
+              disabled={isProcessing}
             >
-              <Ionicons name="cloud-upload-outline" size={40} color="#fff" />
-              <Text style={styles.scanCardTitle}>Upload Image</Text>
-              <Text style={styles.scanCardSubtitle}>From your gallery</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+              <LinearGradient
+                colors={['#4CAF50', '#45a049']}
+                style={styles.actionGradient}
+              >
+                <Ionicons name="cloud-upload-outline" size={40} color="#fff" />
+                <Text style={styles.actionCardTitle}>Upload Image</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
         </View>
+
+        {/* Processing Indicator */}
+        {isProcessing && (
+          <View style={styles.section}>
+            <View style={styles.loadingCard}>
+              <ActivityIndicator size="large" color="#4CAF50" />
+              <Text style={styles.loadingText}>Analyzing plant...</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Last Analyzed Image */}
+        {lastScan && !isProcessing && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Last Analysis</Text>
+            <TouchableOpacity
+              style={styles.lastScanCard}
+              onPress={() =>
+                navigation.navigate('Results', {
+                  disease: lastScan.disease,
+                  severity: lastScan.severity,
+                  imageUri: lastScan.imageUri,
+                  recommendations: lastScan.recommendations,
+                  affectedParts: lastScan.affectedParts,
+                  isPlant: lastScan.isPlant,
+                  message: lastScan.message,
+                })
+              }
+            >
+              <Image source={{ uri: lastScan.imageUri }} style={styles.lastScanImage} />
+              <View style={styles.lastScanInfo}>
+                <Text style={styles.lastScanDisease} numberOfLines={1}>
+                  {lastScan.disease}
+                </Text>
+                <View style={styles.lastScanDetails}>
+                  <View
+                    style={[
+                      styles.severityBadge,
+                      { backgroundColor: getSeverityColor(lastScan.severity) },
+                    ]}
+                  >
+                    <Text style={styles.severityText}>{lastScan.severity}</Text>
+                  </View>
+                  <Text style={styles.lastScanDate}>{formatDate(lastScan.timestamp)}</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Plant Tips removed */}
 
@@ -87,19 +255,6 @@ export default function HomeScreen() {
               <Text style={styles.weatherSubtitle}>🌧️ Cover your crops</Text>
             </View>
           </View>
-        </View>
-
-        {/* Favorites */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Favorites</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {favorites.map((plant) => (
-              <TouchableOpacity key={plant.id} style={styles.favoriteCard}>
-                <Image source={plant.image} style={styles.favoriteImage} />
-                <Text style={styles.favoriteName}>{plant.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
         </View>
 
         <View style={{ height: 20 }} />
@@ -149,40 +304,6 @@ const styles = StyleSheet.create({
   section: {
     padding: 20,
   },
-  scanCard: {
-    marginBottom: 15,
-    borderRadius: 15,
-    overflow: 'hidden',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  uploadCard: {
-    borderRadius: 15,
-    overflow: 'hidden',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  scanGradient: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  scanCardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginTop: 10,
-  },
-  scanCardSubtitle: {
-    fontSize: 14,
-    color: '#fff',
-    marginTop: 4,
-  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -213,27 +334,87 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 4,
   },
-  favoriteCard: {
-    width: 100,
-    marginRight: 15,
-    backgroundColor: '#fff',
-    borderRadius: 10,
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 15,
+  },
+  actionCard: {
+    flex: 1,
+    borderRadius: 15,
     overflow: 'hidden',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  actionGradient: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  actionCardTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginTop: 10,
+  },
+  loadingCard: {
+    backgroundColor: '#fff',
+    padding: 30,
+    borderRadius: 15,
+    alignItems: 'center',
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1.41,
   },
-  favoriteImage: {
-    width: 100,
-    height: 100,
+  loadingText: {
+    marginTop: 15,
+    fontSize: 16,
+    color: '#666',
+  },
+  lastScanCard: {
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    overflow: 'hidden',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  lastScanImage: {
+    width: '100%',
+    height: 200,
     backgroundColor: '#e0e0e0',
   },
-  favoriteName: {
-    padding: 8,
-    fontSize: 14,
-    textAlign: 'center',
+  lastScanInfo: {
+    padding: 15,
+  },
+  lastScanDisease: {
+    fontSize: 18,
+    fontWeight: 'bold',
     color: '#333',
+    marginBottom: 10,
+  },
+  lastScanDetails: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  severityBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  severityText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  lastScanDate: {
+    fontSize: 12,
+    color: '#999',
   },
 });

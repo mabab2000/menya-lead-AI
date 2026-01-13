@@ -22,6 +22,7 @@ export default function ResultsScreen() {
   const { disease, severity, imageUri, recommendations, affectedParts, isPlant, message } = route.params;
 
   const getSeverityColor = () => {
+    if (!severity) return '#999';
     switch (severity.toLowerCase()) {
       case 'high':
       case 'severe':
@@ -134,10 +135,10 @@ export default function ResultsScreen() {
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.secondaryButton}
-            onPress={() => navigation.navigate('PlantScan')}
+            onPress={() => navigation.navigate('MainTabs')}
           >
-            <Ionicons name="scan" size={20} color="#4CAF50" />
-            <Text style={styles.secondaryButtonText}>Scan Again</Text>
+            <Ionicons name="home" size={20} color="#4CAF50" />
+            <Text style={styles.secondaryButtonText}>Go Home</Text>
           </TouchableOpacity>
         </View>
 
