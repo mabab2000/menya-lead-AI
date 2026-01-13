@@ -16,6 +16,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
 import { StorageService, AnalysisResult } from '../services/storage';
+import { useTheme } from '../context/ThemeContext';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -24,6 +25,7 @@ export default function PlantLibraryScreen() {
   const [scans, setScans] = useState<AnalysisResult[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation<NavigationProp>();
+  const { colors } = useTheme();
 
   const loadScans = async () => {
     try {
@@ -114,9 +116,9 @@ export default function PlantLibraryScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <LinearGradient colors={['#4CAF50', '#45a049']} style={styles.header}>
+      <LinearGradient colors={colors.gradient} style={styles.header}>
         <Text style={styles.headerTitle}>Scan History</Text>
         <View style={styles.menuButton}>
           <Ionicons name="time" size={24} color="#fff" />
@@ -124,14 +126,14 @@ export default function PlantLibraryScreen() {
       </LinearGradient>
 
       {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#999" />
+      <View style={[styles.searchContainer, { backgroundColor: colors.surface }]}>
+        <Ionicons name="search" size={20} color={colors.textSecondary} />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: colors.text }]}
           placeholder="Search by disease..."
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.textSecondary}
         />
       </View>
 
@@ -145,9 +147,9 @@ export default function PlantLibraryScreen() {
       >
         {filteredScans.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="leaf-outline" size={64} color="#ccc" />
-            <Text style={styles.emptyText}>No scans yet</Text>
-            <Text style={styles.emptySubtext}>
+            <Ionicons name="leaf-outline" size={64} color={colors.textSecondary} />
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No scans yet</Text>
+            <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
               Your scan history will appear here
             </Text>
           </View>
@@ -156,20 +158,20 @@ export default function PlantLibraryScreen() {
             {filteredScans.map((scan) => (
               <TouchableOpacity
                 key={scan.id}
-                style={styles.scanCard}
+                style={[styles.scanCard, { backgroundColor: colors.surface }]}
                 onPress={() => handleViewScan(scan)}
               >
                 <Image source={{ uri: scan.imageUri }} style={styles.scanImage} />
                 <View style={styles.scanInfo}>
                   <View style={styles.scanHeader}>
-                    <Text style={styles.diseaseText} numberOfLines={1}>
+                    <Text style={[styles.diseaseText, { color: colors.text }]} numberOfLines={1}>
                       {scan.disease}
                     </Text>
                     <TouchableOpacity
                       onPress={() => handleDeleteScan(scan.id)}
                       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     >
-                      <Ionicons name="trash-outline" size={20} color="#F44336" />
+                      <Ionicons name="trash-outline" size={20} color={colors.error} />
                     </TouchableOpacity>
                   </View>
                   <View style={styles.scanDetails}>
@@ -181,10 +183,10 @@ export default function PlantLibraryScreen() {
                     >
                       <Text style={styles.severityText}>{scan.severity}</Text>
                     </View>
-                    <Text style={styles.dateText}>{formatDate(scan.timestamp)}</Text>
+                    <Text style={[styles.dateText, { color: colors.textSecondary }]}>{formatDate(scan.timestamp)}</Text>
                   </View>
                   {scan.affectedParts && scan.affectedParts.length > 0 && (
-                    <Text style={styles.affectedText} numberOfLines={1}>
+                    <Text style={[styles.affectedText, { color: colors.textSecondary }]} numberOfLines={1}>
                       Affected: {scan.affectedParts.join(', ')}
                     </Text>
                   )}

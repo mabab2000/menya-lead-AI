@@ -19,11 +19,13 @@ import { Camera } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { ApiService } from '../services/api';
 import { StorageService, AnalysisResult } from '../services/storage';
+import { useTheme } from '../context/ThemeContext';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const { colors } = useTheme();
   const [userName] = useState('John');
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastScan, setLastScan] = useState<AnalysisResult | null>(null);
@@ -144,11 +146,11 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle="light-content" />
       
       {/* Header */}
-      <LinearGradient colors={['#4CAF50', '#45a049']} style={styles.header}>
+      <LinearGradient colors={colors.gradient} style={styles.header}>
         <View style={styles.headerTop}>
           <View>
             <Text style={styles.welcomeText}>Welcome, {userName}!</Text>
@@ -171,7 +173,7 @@ export default function HomeScreen() {
               disabled={isProcessing}
             >
               <LinearGradient
-                colors={['#4CAF50', '#45a049']}
+                colors={colors.gradient}
                 style={styles.actionGradient}
               >
                 <Ionicons name="camera" size={40} color="#fff" />
@@ -185,7 +187,7 @@ export default function HomeScreen() {
               disabled={isProcessing}
             >
               <LinearGradient
-                colors={['#4CAF50', '#45a049']}
+                colors={colors.gradient}
                 style={styles.actionGradient}
               >
                 <Ionicons name="cloud-upload-outline" size={40} color="#fff" />
@@ -198,9 +200,9 @@ export default function HomeScreen() {
         {/* Processing Indicator */}
         {isProcessing && (
           <View style={styles.section}>
-            <View style={styles.loadingCard}>
-              <ActivityIndicator size="large" color="#4CAF50" />
-              <Text style={styles.loadingText}>Analyzing plant...</Text>
+            <View style={[styles.loadingCard, { backgroundColor: colors.surface }]}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Analyzing plant...</Text>
             </View>
           </View>
         )}
@@ -208,9 +210,9 @@ export default function HomeScreen() {
         {/* Last Analyzed Image */}
         {lastScan && !isProcessing && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Last Analysis</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Last Analysis</Text>
             <TouchableOpacity
-              style={styles.lastScanCard}
+              style={[styles.lastScanCard, { backgroundColor: colors.surface }]}
               onPress={() =>
                 navigation.navigate('Results', {
                   disease: lastScan.disease,
@@ -225,7 +227,7 @@ export default function HomeScreen() {
             >
               <Image source={{ uri: lastScan.imageUri }} style={styles.lastScanImage} />
               <View style={styles.lastScanInfo}>
-                <Text style={styles.lastScanDisease} numberOfLines={1}>
+                <Text style={[styles.lastScanDisease, { color: colors.text }]} numberOfLines={1}>
                   {lastScan.disease}
                 </Text>
                 <View style={styles.lastScanDetails}>
@@ -237,7 +239,7 @@ export default function HomeScreen() {
                   >
                     <Text style={styles.severityText}>{lastScan.severity}</Text>
                   </View>
-                  <Text style={styles.lastScanDate}>{formatDate(lastScan.timestamp)}</Text>
+                  <Text style={[styles.lastScanDate, { color: colors.textSecondary }]}>{formatDate(lastScan.timestamp)}</Text>
                 </View>
               </View>
             </TouchableOpacity>

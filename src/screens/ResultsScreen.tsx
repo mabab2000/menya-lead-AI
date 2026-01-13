@@ -12,6 +12,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme } from '../context/ThemeContext';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type ResultsRouteProp = RouteProp<RootStackParamList, 'Results'>;
@@ -19,6 +20,7 @@ type ResultsRouteProp = RouteProp<RootStackParamList, 'Results'>;
 export default function ResultsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ResultsRouteProp>();
+  const { colors } = useTheme();
   const { disease, severity, imageUri, recommendations, affectedParts, isPlant, message } = route.params;
 
   const getSeverityColor = () => {
@@ -39,9 +41,9 @@ export default function ResultsScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <LinearGradient colors={['#4CAF50', '#45a049']} style={styles.header}>
+      <LinearGradient colors={colors.gradient} style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.navigate('MainTabs')}
@@ -63,17 +65,17 @@ export default function ResultsScreen() {
         )}
 
         {/* Plant Info */}
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: colors.surface }]}>
           {!isPlant && (
             <View style={styles.warningBanner}>
-              <Ionicons name="warning" size={24} color="#FF9800" />
-              <Text style={styles.warningText}>Not a plant detected</Text>
+              <Ionicons name="warning" size={24} color={colors.warning} />
+              <Text style={[styles.warningText, { color: colors.warning }]}>Not a plant detected</Text>
             </View>
           )}
-          <Text style={styles.plantName}>Analysis Result</Text>
-          <Text style={styles.message}>{message}</Text>
+          <Text style={[styles.plantName, { color: colors.text }]}>Analysis Result</Text>
+          <Text style={[styles.message, { color: colors.textSecondary }]}>{message}</Text>
           <View style={styles.diseaseContainer}>
-            <Text style={styles.diseaseLabel}>Disease: </Text>
+            <Text style={[styles.diseaseLabel, { color: colors.textSecondary }]}>Disease: </Text>
             <Text style={[styles.disease, { color: getSeverityColor() }]}>
               {disease}
             </Text>
@@ -91,8 +93,8 @@ export default function ResultsScreen() {
           </View>
           {affectedParts && affectedParts.length > 0 && (
             <View style={styles.affectedPartsContainer}>
-              <Text style={styles.affectedPartsLabel}>Affected Parts: </Text>
-              <Text style={styles.affectedPartsText}>
+              <Text style={[styles.affectedPartsLabel, { color: colors.textSecondary }]}>Affected Parts: </Text>
+              <Text style={[styles.affectedPartsText, { color: colors.text }]}>
                 {affectedParts.join(', ')}
               </Text>
             </View>
@@ -100,26 +102,26 @@ export default function ResultsScreen() {
         </View>
 
         {/* Symptoms */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Affected Parts</Text>
+        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Affected Parts</Text>
           {affectedParts && affectedParts.map((part: string, index: number) => (
             <View key={index} style={styles.symptomItem}>
               <Text style={styles.bulletPoint}>🍃</Text>
-              <Text style={styles.symptomText}>{part}</Text>
+              <Text style={[styles.symptomText, { color: colors.textSecondary }]}>{part}</Text>
             </View>
           ))}
         </View>
 
         {/* Treatment */}
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: colors.surface }]}>
           <View style={styles.treatmentHeader}>
-            <Ionicons name="medical" size={24} color="#4CAF50" />
-            <Text style={styles.sectionTitle}>Recommendations</Text>
+            <Ionicons name="medical" size={24} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Recommendations</Text>
           </View>
           {recommendations && recommendations.map((recommendation: string, index: number) => (
             <View key={index} style={styles.recommendationItem}>
-              <Text style={styles.recommendationNumber}>{index + 1}.</Text>
-              <Text style={styles.recommendationText}>{recommendation}</Text>
+              <Text style={[styles.recommendationNumber, { color: colors.primary }]}>{index + 1}.</Text>
+              <Text style={[styles.recommendationText, { color: colors.textSecondary }]}>{recommendation}</Text>
             </View>
           ))}
         </View>
@@ -127,26 +129,26 @@ export default function ResultsScreen() {
         {/* Action Buttons */}
         <View style={styles.actions}>
           <TouchableOpacity 
-            style={styles.primaryButton}
+            style={[styles.primaryButton, { backgroundColor: colors.primary }]}
             onPress={() => navigation.navigate('MainTabs', { screen: 'Library' } as any)}
           >
             <Ionicons name="library" size={20} color="#fff" />
             <Text style={styles.primaryButtonText}>View Library</Text>
           </TouchableOpacity>
           <TouchableOpacity 
-            style={styles.secondaryButton}
+            style={[styles.secondaryButton, { backgroundColor: colors.surface, borderColor: colors.primary }]}
             onPress={() => navigation.navigate('MainTabs')}
           >
-            <Ionicons name="home" size={20} color="#4CAF50" />
-            <Text style={styles.secondaryButtonText}>Go Home</Text>
+            <Ionicons name="home" size={20} color={colors.primary} />
+            <Text style={[styles.secondaryButtonText, { color: colors.primary }]}>Go Home</Text>
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity
-          style={styles.homeButton}
+          style={[styles.homeButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
           onPress={() => navigation.navigate('MainTabs')}
         >
-          <Text style={styles.homeButtonText}>Back to Home</Text>
+          <Text style={[styles.homeButtonText, { color: colors.textSecondary }]}>Back to Home</Text>
         </TouchableOpacity>
 
         <View style={{ height: 20 }} />
