@@ -11,7 +11,6 @@ import PlantScanScreen from '../screens/PlantScanScreen';
 import ResultsScreen from '../screens/ResultsScreen';
 import PlantLibraryScreen from '../screens/PlantLibraryScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-import CommunityScreen from '../screens/CommunityScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -29,8 +28,6 @@ function MainTabs() {
             iconName = focused ? 'library' : 'library-outline';
           } else if (route.name === 'Scan') {
             iconName = focused ? 'scan' : 'scan-outline';
-          } else if (route.name === 'Community') {
-            iconName = focused ? 'people' : 'people-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
           }
@@ -45,7 +42,6 @@ function MainTabs() {
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Library" component={PlantLibraryScreen} />
       <Tab.Screen name="Scan" component={PlantScanScreen} />
-      <Tab.Screen name="Community" component={CommunityScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );

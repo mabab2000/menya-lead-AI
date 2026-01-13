@@ -20,10 +20,7 @@ export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
   const [userName] = useState('John');
 
-  const plantTips = [
-    { id: 1, title: 'Watering Guide', icon: '💧' },
-    { id: 2, title: 'Fertilizing Tips', icon: '🌱' },
-  ];
+  
 
   const favorites = [
     { id: 1, name: 'Tomato', image: require('../../assets/plants/tomato.jpg') },
@@ -79,17 +76,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Plant Tips */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Plant Tips</Text>
-          {plantTips.map((tip) => (
-            <TouchableOpacity key={tip.id} style={styles.tipCard}>
-              <Text style={styles.tipIcon}>{tip.icon}</Text>
-              <Text style={styles.tipTitle}>{tip.title}</Text>
-              <Ionicons name="chevron-forward" size={20} color="#999" />
-            </TouchableOpacity>
-          ))}
-        </View>
+        {/* Plant Tips removed */}
 
         {/* Weather Alert */}
         <View style={styles.section}>
@@ -202,28 +189,7 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 15,
   },
-  tipCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-  },
-  tipIcon: {
-    fontSize: 24,
-    marginRight: 15,
-  },
-  tipTitle: {
-    flex: 1,
-    fontSize: 16,
-    color: '#333',
-  },
+  
   weatherCard: {
     flexDirection: 'row',
     alignItems: 'center',

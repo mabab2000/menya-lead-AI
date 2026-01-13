@@ -19,45 +19,23 @@ type ResultsRouteProp = RouteProp<RootStackParamList, 'Results'>;
 export default function ResultsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ResultsRouteProp>();
-  const { plantName, disease, severity, imageUri } = route.params;
+  const { disease, severity, imageUri, recommendations, affectedParts, isPlant, message } = route.params;
 
   const getSeverityColor = () => {
-    switch (severity) {
-      case 'High':
+    switch (severity.toLowerCase()) {
+      case 'high':
+      case 'severe':
         return '#F44336';
-      case 'Medium':
+      case 'medium':
+      case 'moderate':
         return '#FF9800';
-      case 'Low':
+      case 'low':
+      case 'mild':
         return '#4CAF50';
       default:
         return '#999';
     }
   };
-
-  const getDiseaseInfo = () => {
-    // Sample disease information
-    const diseaseData: any = {
-      'Leaf Blight': {
-        symptoms: ['Brown spots', 'Yellowing'],
-        treatment: 'Apply fungicide and remove affected leaves. Ensure proper spacing for air circulation.',
-      },
-      'Early Blight': {
-        symptoms: ['Dark spots', 'Target-like patterns', 'Leaf yellowing'],
-        treatment: 'Use copper-based fungicides. Remove infected leaves and maintain proper plant spacing.',
-      },
-      'Brown Spot': {
-        symptoms: ['Brown lesions', 'Oval spots', 'Yellow halo'],
-        treatment: 'Apply recommended fungicides and improve drainage. Use resistant varieties if available.',
-      },
-    };
-
-    return diseaseData[disease] || {
-      symptoms: ['Leaf discoloration', 'Spots on leaves'],
-      treatment: 'Consult with an agricultural expert for specific treatment recommendations.',
-    };
-  };
-
-  const info = getDiseaseInfo();
 
   return (
     <View style={styles.container}>
@@ -85,7 +63,14 @@ export default function ResultsScreen() {
 
         {/* Plant Info */}
         <View style={styles.card}>
-          <Text style={styles.plantName}>{plantName}</Text>
+          {!isPlant && (
+            <View style={styles.warningBanner}>
+              <Ionicons name="warning" size={24} color="#FF9800" />
+              <Text style={styles.warningText}>Not a plant detected</Text>
+            </View>
+          )}
+          <Text style={styles.plantName}>Analysis Result</Text>
+          <Text style={styles.message}>{message}</Text>
           <View style={styles.diseaseContainer}>
             <Text style={styles.diseaseLabel}>Disease: </Text>
             <Text style={[styles.disease, { color: getSeverityColor() }]}>
@@ -103,15 +88,23 @@ export default function ResultsScreen() {
               <Text style={styles.severityText}>{severity}</Text>
             </View>
           </View>
+          {affectedParts && affectedParts.length > 0 && (
+            <View style={styles.affectedPartsContainer}>
+              <Text style={styles.affectedPartsLabel}>Affected Parts: </Text>
+              <Text style={styles.affectedPartsText}>
+                {affectedParts.join(', ')}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Symptoms */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Symptoms</Text>
-          {info.symptoms.map((symptom: string, index: number) => (
+          <Text style={styles.sectionTitle}>Affected Parts</Text>
+          {affectedParts && affectedParts.map((part: string, index: number) => (
             <View key={index} style={styles.symptomItem}>
               <Text style={styles.bulletPoint}>🍃</Text>
-              <Text style={styles.symptomText}>{symptom}</Text>
+              <Text style={styles.symptomText}>{part}</Text>
             </View>
           ))}
         </View>
@@ -120,43 +113,31 @@ export default function ResultsScreen() {
         <View style={styles.card}>
           <View style={styles.treatmentHeader}>
             <Ionicons name="medical" size={24} color="#4CAF50" />
-            <Text style={styles.sectionTitle}>Treatment</Text>
+            <Text style={styles.sectionTitle}>Recommendations</Text>
           </View>
-          <Text style={styles.treatmentText}>{info.treatment}</Text>
-        </View>
-
-        {/* Care Tips */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Care Tips</Text>
-          <View style={styles.tipItem}>
-            <Ionicons name="water" size={20} color="#2196F3" />
-            <Text style={styles.tipText}>
-              Water regularly but avoid over-watering
-            </Text>
-          </View>
-          <View style={styles.tipItem}>
-            <Ionicons name="sunny" size={20} color="#FFC107" />
-            <Text style={styles.tipText}>
-              Ensure adequate sunlight exposure
-            </Text>
-          </View>
-          <View style={styles.tipItem}>
-            <Ionicons name="leaf" size={20} color="#4CAF50" />
-            <Text style={styles.tipText}>
-              Remove infected leaves promptly
-            </Text>
-          </View>
+          {recommendations && recommendations.map((recommendation: string, index: number) => (
+            <View key={index} style={styles.recommendationItem}>
+              <Text style={styles.recommendationNumber}>{index + 1}.</Text>
+              <Text style={styles.recommendationText}>{recommendation}</Text>
+            </View>
+          ))}
         </View>
 
         {/* Action Buttons */}
         <View style={styles.actions}>
-          <TouchableOpacity style={styles.primaryButton}>
-            <Ionicons name="checkmark-circle" size={20} color="#fff" />
-            <Text style={styles.primaryButtonText}>Save to History</Text>
+          <TouchableOpacity 
+            style={styles.primaryButton}
+            onPress={() => navigation.navigate('MainTabs', { screen: 'Library' } as any)}
+          >
+            <Ionicons name="library" size={20} color="#fff" />
+            <Text style={styles.primaryButtonText}>View Library</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.secondaryButton}>
-            <Ionicons name="person" size={20} color="#4CAF50" />
-            <Text style={styles.secondaryButtonText}>Ask an Expert</Text>
+          <TouchableOpacity 
+            style={styles.secondaryButton}
+            onPress={() => navigation.navigate('PlantScan')}
+          >
+            <Ionicons name="scan" size={20} color="#4CAF50" />
+            <Text style={styles.secondaryButtonText}>Scan Again</Text>
           </TouchableOpacity>
         </View>
 
@@ -243,6 +224,26 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 10,
   },
+  message: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 15,
+    lineHeight: 20,
+  },
+  warningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 15,
+  },
+  warningText: {
+    marginLeft: 10,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FF9800',
+  },
   diseaseContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -275,6 +276,20 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 14,
   },
+  affectedPartsContainer: {
+    marginTop: 10,
+  },
+  affectedPartsLabel: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 5,
+  },
+  affectedPartsText: {
+    fontSize: 15,
+    color: '#333',
+    fontWeight: '500',
+    textTransform: 'capitalize',
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -305,6 +320,24 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#555',
     lineHeight: 22,
+  },
+  recommendationItem: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    paddingLeft: 5,
+  },
+  recommendationNumber: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#4CAF50',
+    marginRight: 10,
+    minWidth: 20,
+  },
+  recommendationText: {
+    fontSize: 15,
+    color: '#555',
+    lineHeight: 22,
+    flex: 1,
   },
   tipItem: {
     flexDirection: 'row',

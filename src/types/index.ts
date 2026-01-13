@@ -2,10 +2,13 @@ export type RootStackParamList = {
   MainTabs: undefined;
   PlantScan: undefined;
   Results: {
-    plantName: string;
     disease: string;
     severity: string;
-    imageUri?: string;
+    imageUri: string;
+    recommendations: string[];
+    affectedParts: string[];
+    isPlant: boolean;
+    message: string;
   };
 };
 
@@ -13,7 +16,6 @@ export type MainTabParamList = {
   Home: undefined;
   Library: undefined;
   Scan: undefined;
-  Community: undefined;
   Profile: undefined;
 };
 
@@ -35,8 +37,11 @@ export interface PlantData {
 
 export interface ScanHistory {
   id: string;
-  plantName: string;
   disease: string;
+  severity: string;
   date: string;
-  imageUri?: string;
+  imageUri: string;
+  recommendations: string[];
+  affectedParts: string[];
+  isPlant: boolean;
 }

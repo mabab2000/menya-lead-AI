@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,63 +7,121 @@ import {
   TouchableOpacity,
   Image,
   TextInput,
+  RefreshControl,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../types';
+import { StorageService, AnalysisResult } from '../services/storage';
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function PlantLibraryScreen() {
-  const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [scans, setScans] = useState<AnalysisResult[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const navigation = useNavigation<NavigationProp>();
 
-  const categories = ['All', 'Corn', 'Fruits', 'Vegetables'];
+  const loadScans = async () => {
+    try {
+      const savedScans = await StorageService.getAllScans();
+      setScans(savedScans);
+    } catch (error) {
+      console.error('Error loading scans:', error);
+      Alert.alert('Error', 'Failed to load scan history');
+    }
+  };
 
-  const plants = [
-    {
-      id: 1,
-      name: 'Maize',
-      category: 'Corn',
-      image: require('../../assets/plants/maize.jpg'),
-      description: 'Common cereal crop',
-    },
-    {
-      id: 2,
-      name: 'Cassava',
-      category: 'Vegetables',
-      image: require('../../assets/plants/cassava.jpg'),
-      description: 'Root vegetable crop',
-    },
-    {
-      id: 3,
-      name: 'Rice',
-      category: 'Corn',
-      image: require('../../assets/plants/rice.jpg'),
-      description: 'Staple grain crop',
-    },
-    {
-      id: 4,
-      name: 'Tomato',
-      category: 'Vegetables',
-      image: require('../../assets/plants/tomato.jpg'),
-      description: 'Popular garden vegetable',
-    },
-  ];
+  useFocusEffect(
+    useCallback(() => {
+      loadScans();
+    }, [])
+  );
 
-  const filteredPlants = plants.filter((plant) => {
-    const matchesCategory =
-      selectedCategory === 'All' || plant.category === selectedCategory;
-    const matchesSearch = plant.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadScans();
+    setRefreshing(false);
+  };
+
+  const handleDeleteScan = async (id: string) => {
+    Alert.alert(
+      'Delete Scan',
+      'Are you sure you want to delete this scan?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await StorageService.deleteScan(id);
+              await loadScans();
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete scan');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleViewScan = (scan: AnalysisResult) => {
+    navigation.navigate('Results', {
+      disease: scan.disease,
+      severity: scan.severity,
+      imageUri: scan.imageUri,
+      recommendations: scan.recommendations,
+      affectedParts: scan.affectedParts,
+      isPlant: scan.isPlant,
+      message: scan.message,
+    });
+  };
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity.toLowerCase()) {
+      case 'high':
+      case 'severe':
+        return '#F44336';
+      case 'medium':
+      case 'moderate':
+        return '#FF9800';
+      case 'low':
+      case 'mild':
+        return '#4CAF50';
+      default:
+        return '#999';
+    }
+  };
+
+  const formatDate = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const filteredScans = scans.filter((scan) =>
+    scan.disease.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <LinearGradient colors={['#4CAF50', '#45a049']} style={styles.header}>
-        <Text style={styles.headerTitle}>Plant Library</Text>
-        <TouchableOpacity style={styles.menuButton}>
-          <Ionicons name="menu" size={24} color="#fff" />
+        <Text style={styles.headerTitle}>Scan History</Text>
+        <TouchableOpacity 
+          style={styles.menuButton}
+          onPress={() => navigation.navigate('PlantScan')}
+        >
+          <Ionicons name="add" size={24} color="#fff" />
         </TouchableOpacity>
       </LinearGradient>
 
@@ -72,61 +130,78 @@ export default function PlantLibraryScreen() {
         <Ionicons name="search" size={20} color="#999" />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search plants..."
+          placeholder="Search by disease..."
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholderTextColor="#999"
         />
       </View>
 
-      {/* Categories */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.categoriesContainer}
+      {/* Scans List */}
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
-        {categories.map((category) => (
-          <TouchableOpacity
-            key={category}
-            style={[
-              styles.categoryChip,
-              selectedCategory === category && styles.categoryChipActive,
-            ]}
-            onPress={() => setSelectedCategory(category)}
-          >
-            <Text
-              style={[
-                styles.categoryText,
-                selectedCategory === category && styles.categoryTextActive,
-              ]}
-            >
-              {category}
+        {filteredScans.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="leaf-outline" size={64} color="#ccc" />
+            <Text style={styles.emptyText}>No scans yet</Text>
+            <Text style={styles.emptySubtext}>
+              Start scanning plants to build your library
             </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      {/* Plants Grid */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.grid}>
-          {filteredPlants.map((plant) => (
-            <TouchableOpacity key={plant.id} style={styles.plantCard}>
-              <Image source={plant.image} style={styles.plantImage} />
-              <View style={styles.plantInfo}>
-                <Text style={styles.plantName}>{plant.name}</Text>
-                <Text style={styles.plantDescription} numberOfLines={1}>
-                  {plant.description}
-                </Text>
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color="#4CAF50"
-                  style={styles.plantArrow}
-                />
-              </View>
+            <TouchableOpacity
+              style={styles.scanButton}
+              onPress={() => navigation.navigate('PlantScan')}
+            >
+              <Ionicons name="scan" size={20} color="#fff" />
+              <Text style={styles.scanButtonText}>Scan a Plant</Text>
             </TouchableOpacity>
-          ))}
-        </View>
+          </View>
+        ) : (
+          <View style={styles.grid}>
+            {filteredScans.map((scan) => (
+              <TouchableOpacity
+                key={scan.id}
+                style={styles.scanCard}
+                onPress={() => handleViewScan(scan)}
+              >
+                <Image source={{ uri: scan.imageUri }} style={styles.scanImage} />
+                <View style={styles.scanInfo}>
+                  <View style={styles.scanHeader}>
+                    <Text style={styles.diseaseText} numberOfLines={1}>
+                      {scan.disease}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteScan(scan.id)}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Ionicons name="trash-outline" size={20} color="#F44336" />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.scanDetails}>
+                    <View
+                      style={[
+                        styles.severityBadge,
+                        { backgroundColor: getSeverityColor(scan.severity) },
+                      ]}
+                    >
+                      <Text style={styles.severityText}>{scan.severity}</Text>
+                    </View>
+                    <Text style={styles.dateText}>{formatDate(scan.timestamp)}</Text>
+                  </View>
+                  {scan.affectedParts && scan.affectedParts.length > 0 && (
+                    <Text style={styles.affectedText} numberOfLines={1}>
+                      Affected: {scan.affectedParts.join(', ')}
+                    </Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
         <View style={{ height: 20 }} />
       </ScrollView>
     </View>
@@ -179,40 +254,46 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
   },
-  categoriesContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  categoryChip: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: '#fff',
-    marginRight: 10,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-  },
-  categoryChipActive: {
-    backgroundColor: '#4CAF50',
-  },
-  categoryText: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '600',
-  },
-  categoryTextActive: {
-    color: '#fff',
-  },
   content: {
     flex: 1,
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#999',
+    marginTop: 20,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  scanButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 25,
+    marginTop: 20,
+  },
+  scanButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8,
   },
   grid: {
     paddingHorizontal: 20,
   },
-  plantCard: {
+  scanCard: {
     backgroundColor: '#fff',
     borderRadius: 15,
     marginBottom: 15,
@@ -223,29 +304,50 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
-  plantImage: {
+  scanImage: {
     width: '100%',
-    height: 150,
+    height: 200,
     backgroundColor: '#e0e0e0',
   },
-  plantInfo: {
+  scanInfo: {
     padding: 15,
-    flexDirection: 'row',
-    alignItems: 'center',
   },
-  plantName: {
+  scanHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  diseaseText: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
     flex: 1,
+    marginRight: 10,
   },
-  plantDescription: {
-    fontSize: 14,
+  scanDetails: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  severityBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  severityText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  dateText: {
+    fontSize: 12,
+    color: '#999',
+  },
+  affectedText: {
+    fontSize: 13,
     color: '#666',
-    flex: 2,
-    marginLeft: 10,
-  },
-  plantArrow: {
-    marginLeft: 10,
+    fontStyle: 'italic',
   },
 });

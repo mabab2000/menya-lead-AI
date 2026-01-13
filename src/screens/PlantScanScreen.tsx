@@ -14,6 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
+import { ApiService } from '../services/api';
+import { StorageService, AnalysisResult } from '../services/storage';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -62,39 +64,59 @@ export default function PlantScanScreen() {
     }
   };
 
-  const analyzePlant = (imageUri: string) => {
+  const analyzePlant = async (imageUri: string) => {
     setIsProcessing(true);
     
-    // Simulate AI analysis
-    setTimeout(() => {
+    try {
+      // Call the real API
+      const apiResponse = await ApiService.analyzeImage(imageUri);
+      
+      // Create a scan result to save
+      const scanResult: AnalysisResult = {
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        imageUri,
+        isPlant: apiResponse.is_plant,
+        message: apiResponse.message,
+        disease: apiResponse.disease,
+        severity: apiResponse.severity,
+        recommendations: apiResponse.recommendations,
+        affectedParts: apiResponse.affected_parts,
+      };
+      
+      // Save to storage
+      await StorageService.saveScan(scanResult);
+      
       setIsProcessing(false);
       
-      // Simulate different disease detections
-      const diseases = [
-        {
-          plantName: 'Maize Leaf',
-          disease: 'Leaf Blight',
-          severity: 'High',
-        },
-        {
-          plantName: 'Tomato Leaf',
-          disease: 'Early Blight',
-          severity: 'Medium',
-        },
-        {
-          plantName: 'Rice Leaf',
-          disease: 'Brown Spot',
-          severity: 'Low',
-        },
-      ];
-      
-      const randomDisease = diseases[Math.floor(Math.random() * diseases.length)];
-      
+      // Navigate to results
       navigation.navigate('Results', {
-        ...randomDisease,
+        disease: apiResponse.disease,
+        severity: apiResponse.severity,
         imageUri,
+        recommendations: apiResponse.recommendations,
+        affectedParts: apiResponse.affected_parts,
+        isPlant: apiResponse.is_plant,
+        message: apiResponse.message,
       });
-    }, 2000);
+    } catch (error) {
+      setIsProcessing(false);
+      Alert.alert(
+        'Analysis Failed',
+        'Failed to analyze the image. Please check your internet connection and try again.',
+        [
+          {
+            text: 'Retry',
+            onPress: () => analyzePlant(imageUri),
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => setCapturedImage(null),
+          },
+        ]
+      );
+    }
   };
 
   const retake = () => {
