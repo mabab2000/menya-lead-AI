@@ -25,6 +25,15 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Menya Leaf AI to access your camera to scan plant leaves."
+        }
+      ],
+      "expo-image-picker"
+    ]
   }
 }
